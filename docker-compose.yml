@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Broker Service
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto_broker
+    ports:
+      - "1883:1883" # MQTT Standard
+      - "9001:9001" # MQTT WebSockets
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto_data:/mosquitto/data
+      - ./mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+
+  # Web Client Service
+  web-client:
+    build: .
+    container_name: mqtt_web_client
+    ports:
+      - "8080:80"
+    volumes:
+      - ./public:/usr/share/nginx/html
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
