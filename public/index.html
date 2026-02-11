@@ -4,128 +4,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MQTT Web Client Prototype</title>
-    <!-- Tailwind CSS para estilização rápida e profissional -->
+    <title>MQTT Web Client - Login</title>
+
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Paho MQTT Client via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"
         type="text/javascript"></script>
-    <style>
-        /* Animação suave para novas mensagens */
-        .message-enter {
-            animation: slideIn 0.3s ease-out;
-        }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body class="bg-gray-100 min-h-screen text-gray-800 font-sans">
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
 
-    <div class="container mx-auto p-4 max-w-4xl">
-
-        <!-- Header -->
-        <header class="mb-6 flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-            <div>
-                <h1 class="text-2xl font-bold text-blue-600">MQTT Web Client</h1>
-                <p class="text-sm text-gray-500">Protótipo de Comunicação via WebSocket</p>
+    <!-- CAMADA DE LOGIN -->
+    <div id="login-layer" class="flex flex-col items-center justify-center min-h-screen px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-blue-600 mb-2">MQTT Client</h1>
+                <p class="text-slate-500 text-sm">Autenticação Segura</p>
             </div>
-            <div id="status-indicator"
-                class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-600 text-sm font-semibold">
-                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                Desconectado
+
+            <div class="space-y-4">
+                <!-- Credenciais -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Usuário</label>
+                    <input type="text" id="login-username" value="admin"
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                        placeholder="Digite seu usuário">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
+                    <input type="password" id="login-password"
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                        placeholder="••••••••">
+                </div>
+
+                <!-- Configurações Avançadas (Toggle) -->
+                <div class="pt-2">
+                    <button onclick="document.getElementById('advanced-options').classList.toggle('hidden')"
+                        class="text-xs text-blue-500 hover:text-blue-700 underline mb-2 cursor-pointer">
+                        Opções Avançadas (Host/Porta)
+                    </button>
+                    <div id="advanced-options"
+                        class="hidden space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase">Host</label>
+                            <input type="text" id="login-host" value="localhost"
+                                class="w-full p-2 border rounded text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase">Porta (WSS)</label>
+                            <input type="number" id="login-port" value="9001"
+                                class="w-full p-2 border rounded text-sm outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão Entrar -->
+                <button onclick="attemptLogin()" id="btn-login"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30 flex justify-center items-center">
+                    <span id="btn-login-text">Entrar no Sistema</span>
+                    <span id="btn-login-loading"
+                        class="hidden ml-2 w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                </button>
+
+                <!-- Feedback de Erro -->
+                <div id="login-error"
+                    class="hidden p-3 bg-red-100 text-red-600 text-sm rounded-lg text-center border border-red-200">
+                </div>
+
+                <p class="text-[10px] text-center text-slate-400 mt-4">
+                    Nota: Aceite o certificado em <a href="https://localhost:9001" target="_blank"
+                        class="underline hover:text-blue-500">https://localhost:9001</a> antes de conectar.
+                </p>
+            </div>
+        </div>
+        <p class="mt-6 text-slate-400 text-xs">Versão 1.0.0 &bull; POC Ambiente Seguro</p>
+    </div>
+
+    <!-- CAMADA DA APLICAÇÃO (Inicialmente Oculta) -->
+    <div id="app-layer" class="hidden-layer container mx-auto p-4 max-w-5xl">
+
+        <!-- Header App -->
+        <header
+            class="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-100 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800">Painel de Controle</h1>
+                    <p class="text-xs text-slate-500 flex items-center gap-1">
+                        Conectado como: <span id="user-display" class="font-semibold text-blue-600">...</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Online
+                </div>
+                <button onclick="logout()"
+                    class="text-sm text-red-500 hover:text-red-700 font-semibold border border-red-100 hover:bg-red-50 px-3 py-1.5 rounded-lg transition">
+                    Sair
+                </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-            <!-- Coluna da Esquerda: Configurações e Ações -->
-            <div class="md:col-span-1 space-y-6">
+            <!-- Sidebar / Configurações (4 Colunas) -->
+            <div class="md:col-span-4 space-y-6">
 
-                <!-- Card de Conexão -->
-                <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-                    <h2 class="font-bold text-gray-700 mb-4 border-b pb-2">Configuração do Broker</h2>
-                    <div class="space-y-3">
+                <!-- Card Publicar -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        Publicar Mensagem
+                    </h2>
+                    <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Host</label>
-                            <input type="text" id="host" value="localhost"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none transition">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tópico</label>
+                            <input type="text" id="pub-topic" placeholder="sensores/temperatura" value="teste/topic"
+                                class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-400 outline-none text-sm font-mono">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Porta (WebSocket)</label>
-                            <input type="number" id="port" value="9001"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none transition">
-                        </div>
-                        <button id="btn-connect" onclick="toggleConnection()"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-                            Conectar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Card de Publicação -->
-                <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 opacity-50 pointer-events-none transition"
-                    id="publish-card">
-                    <h2 class="font-bold text-gray-700 mb-4 border-b pb-2">Publicar Mensagem</h2>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Tópico</label>
-                            <input type="text" id="pub-topic" placeholder="ex: sensores/temp"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Mensagem</label>
-                            <textarea id="pub-payload" placeholder="Conteúdo da mensagem..."
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none h-20 resize-none"></textarea>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Payload
+                                (Mensagem)</label>
+                            <textarea id="pub-payload" placeholder="{ 'valor': 25.5 }"
+                                class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-400 outline-none h-24 resize-none text-sm font-mono"></textarea>
                         </div>
                         <button onclick="publishMessage()"
-                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-                            Enviar
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md shadow-green-500/20 active:scale-95">
+                            Enviar Mensagem
                         </button>
                     </div>
                 </div>
 
-                <!-- Card de Assinatura -->
-                <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 opacity-50 pointer-events-none transition"
-                    id="subscribe-card">
-                    <h2 class="font-bold text-gray-700 mb-4 border-b pb-2">Assinar Tópico</h2>
-                    <div class="flex gap-2">
-                        <input type="text" id="sub-topic" placeholder="ex: sensores/#"
-                            class="w-full p-2 border rounded focus:ring-2 focus:ring-purple-400 outline-none">
+                <!-- Card Assinar -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                            </path>
+                        </svg>
+                        Assinar Tópico
+                    </h2>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="sub-topic" placeholder="sensores/#"
+                            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none text-sm font-mono">
                         <button onclick="subscribeTopic()"
-                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 rounded transition">
+                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 rounded-lg transition shadow-md shadow-purple-500/20">
                             +
                         </button>
                     </div>
-                    <div id="subs-list" class="mt-3 flex flex-wrap gap-2">
-                        <!-- Badges de tópicos assinados aparecerão aqui -->
+
+                    <div class="text-xs font-bold text-slate-400 uppercase mb-2">Assinaturas Ativas</div>
+                    <div id="subs-list"
+                        class="flex flex-wrap gap-2 min-h-[40px] bg-slate-50 p-2 rounded-lg border border-slate-100 border-dashed">
+                        <span class="text-slate-300 text-xs italic m-auto">Nenhum tópico assinado</span>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Coluna da Direita: Console de Mensagens -->
-            <div class="md:col-span-2">
-                <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-4 border-b pb-2">
-                        <h2 class="font-bold text-gray-700">Console de Mensagens</h2>
+            <!-- Page Content / Console (8 Colunas) -->
+            <div class="md:col-span-8">
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-slate-200 h-[600px] flex flex-col overflow-hidden">
+                    <div class="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Terminal em Tempo Real
+                        </h2>
                         <button onclick="clearConsole()"
-                            class="text-xs text-gray-500 hover:text-red-500">Limpar</button>
+                            class="text-xs text-slate-400 hover:text-red-500 font-medium transition">Limpar
+                            Histórico</button>
                     </div>
 
                     <div id="messages-container"
-                        class="flex-1 overflow-y-auto bg-gray-50 rounded p-4 font-mono text-sm space-y-2 h-[500px]">
-                        <p class="text-gray-400 italic text-center mt-20">Aguardando conexão...</p>
+                        class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 font-mono text-sm scroll-smooth">
+                        <div class="text-center mt-20">
+                            <div class="inline-block p-3 bg-white rounded-full shadow-sm mb-3">
+                                <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <p class="text-slate-400">O terminal está pronto.</p>
+                            <p class="text-slate-300 text-xs">As mensagens publicadas ou recebidas aparecerão aqui.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -133,189 +216,8 @@
         </div>
     </div>
 
-    <script>
-        // Variáveis Globais
-        let client = null;
-        let isConnected = false;
-
-        // Elementos do DOM
-        const btnConnect = document.getElementById('btn-connect');
-        const statusIndicator = document.getElementById('status-indicator');
-        const publishCard = document.getElementById('publish-card');
-        const subscribeCard = document.getElementById('subscribe-card');
-        const messagesContainer = document.getElementById('messages-container');
-        const subsList = document.getElementById('subs-list');
-
-        // Função para Alternar Conexão
-        function toggleConnection() {
-            if (isConnected) {
-                disconnect();
-            } else {
-                connect();
-            }
-        }
-
-        // Conectar ao Broker
-        function connect() {
-            const host = document.getElementById('host').value;
-            const port = Number(document.getElementById('port').value);
-            const clientId = "clientID-" + parseInt(Math.random() * 100);
-
-            // Cria o cliente Paho
-            client = new Paho.MQTT.Client(host, port, clientId);
-
-            // Define callbacks
-            client.onConnectionLost = onConnectionLost;
-            client.onMessageArrived = onMessageArrived;
-
-            const options = {
-                timeout: 3,
-                onSuccess: onConnect,
-                onFailure: onFailure,
-                // Importante para funcionar em navegadores modernos se o broker não tiver SSL
-                // Se usar SSL (wss), mude useSSL para true
-                useSSL: false
-            };
-
-            logSystem("Tentando conectar a " + host + ":" + port + "...");
-            client.connect(options);
-        }
-
-        // Desconectar
-        function disconnect() {
-            if (client) {
-                client.disconnect();
-                logSystem("Desconectado pelo usuário.");
-                updateUI(false);
-            }
-        }
-
-        // Callback: Sucesso na conexão
-        function onConnect() {
-            logSystem("Conectado com sucesso!");
-            updateUI(true);
-        }
-
-        // Callback: Falha na conexão
-        function onFailure(message) {
-            logSystem("Falha na conexão: " + message.errorMessage, "error");
-            updateUI(false);
-        }
-
-        // Callback: Conexão perdida
-        function onConnectionLost(responseObject) {
-            if (responseObject.errorCode !== 0) {
-                logSystem("Conexão perdida: " + responseObject.errorMessage, "error");
-            }
-            updateUI(false);
-        }
-
-        // Callback: Mensagem Recebida
-        function onMessageArrived(message) {
-            const topic = message.destinationName;
-            const payload = message.payloadString;
-            logMessage(topic, payload);
-        }
-
-        // Publicar Mensagem
-        function publishMessage() {
-            const topic = document.getElementById('pub-topic').value;
-            const payload = document.getElementById('pub-payload').value;
-
-            if (topic === "" || payload === "") {
-                alert("Preencha o tópico e a mensagem.");
-                return;
-            }
-
-            const message = new Paho.MQTT.Message(payload);
-            message.destinationName = topic;
-            client.send(message);
-
-            // Log local visual apenas para confirmação (opcional)
-            logMessage(topic, payload, true);
-        }
-
-        // Assinar Tópico
-        function subscribeTopic() {
-            const topic = document.getElementById('sub-topic').value;
-            if (topic === "") return;
-
-            client.subscribe(topic);
-            logSystem("Assinado no tópico: " + topic);
-
-            // Adicionar badge visual
-            const badge = document.createElement('span');
-            badge.className = "bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs border border-purple-200";
-            badge.innerText = topic;
-            subsList.appendChild(badge);
-
-            document.getElementById('sub-topic').value = '';
-        }
-
-        // Atualizar UI baseado no estado
-        function updateUI(connected) {
-            isConnected = connected;
-
-            if (connected) {
-                btnConnect.innerText = "Desconectar";
-                btnConnect.classList.replace("bg-blue-600", "bg-red-600");
-                btnConnect.classList.replace("hover:bg-blue-700", "hover:bg-red-700");
-
-                statusIndicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Conectado';
-                statusIndicator.className = "flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold";
-
-                publishCard.classList.remove("opacity-50", "pointer-events-none");
-                subscribeCard.classList.remove("opacity-50", "pointer-events-none");
-            } else {
-                btnConnect.innerText = "Conectar";
-                btnConnect.classList.replace("bg-red-600", "bg-blue-600");
-                btnConnect.classList.replace("hover:bg-red-700", "hover:bg-blue-700");
-
-                statusIndicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Desconectado';
-                statusIndicator.className = "flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-600 text-sm font-semibold";
-
-                publishCard.classList.add("opacity-50", "pointer-events-none");
-                subscribeCard.classList.add("opacity-50", "pointer-events-none");
-                subsList.innerHTML = ''; // Limpa assinaturas visuais
-            }
-        }
-
-        // Função de Log no Console Visual
-        function logMessage(topic, payload, isSent = false) {
-            const div = document.createElement('div');
-            const time = new Date().toLocaleTimeString();
-            const directionIcon = isSent ? '⬆️' : '⬇️';
-            const colorClass = isSent ? 'text-green-600' : 'text-blue-600';
-
-            div.className = "message-enter p-2 border-l-4 bg-white shadow-sm " + (isSent ? "border-green-400" : "border-blue-400");
-            div.innerHTML = `
-                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>${directionIcon} ${topic}</span>
-                    <span>${time}</span>
-                </div>
-                <div class="${colorClass} font-semibold break-all">${payload}</div>
-            `;
-
-            // Remove mensagem de "aguardando" se existir
-            if (messagesContainer.querySelector('p')) messagesContainer.innerHTML = '';
-
-            messagesContainer.prepend(div);
-        }
-
-        function logSystem(msg, type = "info") {
-            const div = document.createElement('div');
-            const color = type === "error" ? "text-red-500" : "text-gray-500";
-            div.className = `text-xs italic ${color} text-center my-2`;
-            div.innerText = `[SISTEMA] ${msg}`;
-
-            if (messagesContainer.querySelector('p')) messagesContainer.innerHTML = '';
-            messagesContainer.prepend(div);
-        }
-
-        function clearConsole() {
-            messagesContainer.innerHTML = '<p class="text-gray-400 italic text-center mt-20">Console limpo.</p>';
-        }
-    </script>
+    <!-- Application Logic -->
+    <script src="js/app.js"></script>
 </body>
 
 </html>
