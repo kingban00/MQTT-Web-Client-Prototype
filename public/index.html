@@ -8,7 +8,9 @@
 
     <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"
+
+    <!-- Paho MQTT Client v1.1.0 (Suporte a MQTT 5.0 e melhor estabilidade) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"
         type="text/javascript"></script>
 
     <!-- Custom Style -->
@@ -29,9 +31,9 @@
                 <!-- Credenciais -->
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Usuário</label>
-                    <input type="text" id="login-username" value="admin"
+                    <input type="text" id="login-username"
                         class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                        placeholder="Digite seu usuário">
+                        placeholder="Ex: sensor_01">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
@@ -80,7 +82,7 @@
                 </p>
             </div>
         </div>
-        <p class="mt-6 text-slate-400 text-xs">Versão 1.0.0 &bull; POC Ambiente Seguro</p>
+        <p class="mt-6 text-slate-400 text-xs">Versão 1.1.0 &bull; POC Ambiente Seguro</p>
     </div>
 
     <!-- CAMADA DA APLICAÇÃO (Inicialmente Oculta) -->

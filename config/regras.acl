@@ -1,0 +1,45 @@
+# ==============================================================================
+# ARQUIVO DE CONTROLE DE ACESSO (ACL)
+# Definição de perfis e permissões para o Broker MQTT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PERFIL 1: ADMIN (Backend / SysAdmin)
+# ------------------------------------------------------------------------------
+# Descrição: Permissão total de leitura e escrita em todos os tópicos (Global).
+# Utilizado por:
+# - Serviços de Backend
+# - Administradores do sistema
+# ------------------------------------------------------------------------------
+user admin
+topic readwrite #
+topic readwrite $SYS/#
+
+# ------------------------------------------------------------------------------
+# PERFIL 2: DASHBOARD (Web Client)
+# ------------------------------------------------------------------------------
+# Descrição: Interface de monitoramento e controle.
+# Permissões:
+# 1. Leitura: Acesso total aos tópicos de telemetria.
+# 2. Escrita: Apenas em tópicos de comando.
+# 3. Bloqueio: NÃO pode publicar em telemetria (proteção contra Anti-Spoofing).
+# ------------------------------------------------------------------------------
+user web_client
+topic read telemetria/#
+topic write comandos/#
+
+# ------------------------------------------------------------------------------
+# PERFIL 3: SENSORES (Dispositivos IoT) - PADRÃO (DEFAULT)
+# ------------------------------------------------------------------------------
+# Descrição: Configuração dinâmica para qualquer usuário não listado acima.
+# Mecanismo: Pattern Matching (Correspondência de Padrão).
+#
+# Variável %u: Substituída automaticamente pelo NOME DE USUÁRIO (Username).
+#
+# Exemplo Prático:
+# Se o usuário 'sensor_01' conectar:
+# - Escreve apenas em: telemetria/sensor_01/...
+# - Lê apenas de:      comandos/sensor_01/...
+# ------------------------------------------------------------------------------
+pattern write telemetria/%u/#
+pattern read comandos/%u/#
